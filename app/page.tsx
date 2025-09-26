@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
+import { ChainSelector } from "@/components/chain-selector"
 import { 
   Loader2, 
   Search, 
@@ -25,8 +26,11 @@ import {
   Check,
   BarChart3,
   History,
-  Star
+  Star,
+  Network,
+  Github
 } from "lucide-react"
+import { chains, defaultChain, type Chain } from "@/lib/chains"
 
 interface TokenData {
   name: string
@@ -46,6 +50,14 @@ interface TokenData {
   }
   holders: number
   marketCap?: number
+  chain?: {
+    id: string
+    name: string
+    shortName: string
+    icon: string
+    color: string
+    blockExplorer: string
+  }
 }
 
 interface Transaction {
@@ -67,6 +79,7 @@ interface Holder {
 
 export default function TokenLookup() {
   const [address, setAddress] = useState("")
+  const [selectedChain, setSelectedChain] = useState<Chain>(defaultChain)
   const [tokenData, setTokenData] = useState<TokenData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -91,7 +104,7 @@ export default function TokenLookup() {
     setHolders([])
 
     try {
-      const response = await fetch(`/api?module=token&action=getToken&contractaddress=${address.trim()}`)
+      const response = await fetch(`/api?module=token&action=getToken&contractaddress=${address.trim()}&chain=${selectedChain.id}`)
 
       const data = await response.json()
 
@@ -211,62 +224,98 @@ export default function TokenLookup() {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent">
                 Token Lookup
               </h1>
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  asChild
+                  className="flex items-center gap-2 hover:bg-primary/10 transition-colors"
+                >
+                  <a 
+                    href="https://github.com/Vikash-8090-Yadav/TokenLookUp" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <Github className="h-5 w-5" />
+                    View on GitHub
+                  </a>
+                </Button>
+              </div>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Discover comprehensive token information instantly. Get real-time data, analytics, and insights for any ERC-20 token on Ethereum.
+                Discover comprehensive token information instantly. Get real-time data, analytics, and insights for any token across multiple blockchains including Ethereum, Base, Polygon, and more.
               </p>
             </div>
             
             {/* Search Card */}
-            <Card className="max-w-2xl mx-auto shadow-2xl border-0 bg-card/80 backdrop-blur-sm">
+            <Card className="max-w-3xl mx-auto shadow-2xl border-0 bg-card/80 backdrop-blur-sm relative z-50">
               <CardHeader className="pb-4">
                 <CardTitle className="flex items-center justify-center gap-2 text-xl">
                   <Search className="h-6 w-6 text-primary" />
                   Search Token
                 </CardTitle>
                 <CardDescription className="text-center">
-                  Enter any ERC-20 token contract address to get detailed information
+                  Enter any token contract address to get detailed information from multiple blockchains
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="flex gap-3">
-                  <div className="relative flex-1">
-                    <Input
-                      type="text"
-                      placeholder="0x1234...5678"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      disabled={loading}
-                      className="h-12 text-lg pr-12"
-                    />
-                    {address && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                        onClick={() => setAddress("")}
-                      >
-                        ×
-                      </Button>
-                    )}
+                {/* Chain Selector */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Network className="h-4 w-4" />
+                    Select Blockchain
+                  </label>
+                  <ChainSelector
+                    selectedChain={selectedChain}
+                    onChainChange={setSelectedChain}
+                    disabled={loading}
+                  />
+                </div>
+
+                {/* Address Input */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Contract Address
+                  </label>
+                  <div className="flex gap-3">
+                    <div className="relative flex-1">
+                      <Input
+                        type="text"
+                        placeholder="0x1234...5678"
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        onKeyPress={handleKeyPress}
+                        disabled={loading}
+                        className="h-12 text-lg pr-12"
+                      />
+                      {address && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                          onClick={() => setAddress("")}
+                        >
+                          ×
+                        </Button>
+                      )}
+                    </div>
+                    <Button 
+                      onClick={handleLookup} 
+                      disabled={loading || !address.trim()} 
+                      className="h-12 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                          Searching...
+                        </>
+                      ) : (
+                        <>
+                          <Search className="mr-2 h-5 w-5" />
+                          Lookup
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <Button 
-                    onClick={handleLookup} 
-                    disabled={loading || !address.trim()} 
-                    className="h-12 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Searching...
-                      </>
-                    ) : (
-                      <>
-                        <Search className="mr-2 h-5 w-5" />
-                        Lookup
-                      </>
-                    )}
-                  </Button>
                 </div>
 
                 {error && (
@@ -279,27 +328,27 @@ export default function TokenLookup() {
             </Card>
 
             {/* Features */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
+            <div className="features-section grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mt-12">
               <div className="text-center space-y-2 p-4 rounded-lg bg-card/50 backdrop-blur-sm">
                 <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
                   <BarChart3 className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-semibold">Real-time Data</h3>
-                <p className="text-sm text-muted-foreground">Get up-to-date token information from Blockscout</p>
+                <p className="text-sm text-muted-foreground">Get up-to-date token information from multiple blockchains</p>
               </div>
               <div className="text-center space-y-2 p-4 rounded-lg bg-card/50 backdrop-blur-sm">
                 <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-                  <Users className="h-6 w-6 text-primary" />
+                  <Network className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold">Comprehensive</h3>
-                <p className="text-sm text-muted-foreground">View supply, decimals, and token metadata</p>
+                <h3 className="font-semibold">Multi-Chain</h3>
+                <p className="text-sm text-muted-foreground">Support for Ethereum, Base, Polygon, Arbitrum, and more</p>
               </div>
               <div className="text-center space-y-2 p-4 rounded-lg bg-card/50 backdrop-blur-sm">
                 <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
                   <Globe className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold">Ethereum Native</h3>
-                <p className="text-sm text-muted-foreground">Built for Ethereum mainnet token exploration</p>
+                <h3 className="font-semibold">Comprehensive</h3>
+                <p className="text-sm text-muted-foreground">View supply, decimals, metadata, and blockchain explorer links</p>
               </div>
             </div>
           </div>
@@ -328,6 +377,16 @@ export default function TokenLookup() {
                     <Badge variant="secondary" className="ml-2">
                       {tokenData.symbol}
                     </Badge>
+                    {tokenData.chain && (
+                      <Badge 
+                        variant="outline" 
+                        className="ml-2 flex items-center gap-1"
+                        style={{ borderColor: tokenData.chain.color }}
+                      >
+                        <span>{tokenData.chain.icon}</span>
+                        {tokenData.chain.shortName}
+                      </Badge>
+                    )}
                   </CardTitle>
                   <CardDescription className="mt-2">
                     Contract: <code className="bg-muted px-2 py-1 rounded text-xs">{address}</code>
@@ -339,6 +398,24 @@ export default function TokenLookup() {
                     >
                       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                     </Button>
+                    {tokenData.chain && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-2 h-6 px-2 text-xs"
+                        asChild
+                      >
+                        <a 
+                          href={`${tokenData.chain.blockExplorer}/address/${address}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          View on {tokenData.chain.name}
+                        </a>
+                      </Button>
+                    )}
                   </CardDescription>
                 </div>
                 <Button

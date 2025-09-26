@@ -243,3 +243,26 @@
   overflow-wrap: break-word;
   word-break: break-word;
 }
+
+/* Chain selector dropdown z-index fix */
+.chain-selector-dropdown {
+  z-index: 99999 !important;
+  position: absolute !important;
+}
+
+/* Ensure dropdown appears above all other elements */
+[data-chain-selector] {
+  z-index: 99999 !important;
+}
+
+/* Features section should have lower z-index */
+.features-section {
+  position: relative;
+  z-index: 1;
+}
+
+/* Ensure chain selector dropdown appears above features */
+.chain-selector-dropdown {
+  z-index: 99999 !important;
+  position: absolute !important;
+}

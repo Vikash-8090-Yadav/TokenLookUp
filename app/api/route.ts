@@ -1,15 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { chains, getChainById } from "@/lib/chains"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
   const module = searchParams.get("module")
   const action = searchParams.get("action")
   const contractAddress = searchParams.get("contractaddress")
+  const chainId = searchParams.get("chain") || "ethereum"
 
   // Validate required parameters
   if (module !== "token" || action !== "getToken" || !contractAddress) {
     return NextResponse.json(
-      { error: "Invalid parameters. Required: module=token, action=getToken, contractaddress=<address>" },
+      { error: "Invalid parameters. Required: module=token, action=getToken, contractaddress=<address>, chain=<chainId>" },
       { status: 400 },
     )
   }
@@ -19,19 +21,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid contract address format" }, { status: 400 })
   }
 
-  try {
-    const blockscoutUrl = `https://eth.blockscout.com/api/v2/tokens/${contractAddress}`
+  // Get chain configuration
+  const chain = getChainById(chainId)
+  if (!chain) {
+    return NextResponse.json(
+      { error: `Unsupported chain: ${chainId}. Supported chains: ${chains.map(c => c.id).join(", ")}` },
+      { status: 400 },
+    )
+  }
 
-    console.log("[v0] Fetching token data from:", blockscoutUrl)
+  try {
+    const blockscoutUrl = `${chain.apiUrl}/tokens/${contractAddress}`
+
+    console.log(`[${chain.name}] Fetching token data from:`, blockscoutUrl)
 
     const response = await fetch(blockscoutUrl)
 
     if (!response.ok) {
-      throw new Error(`Blockscout API error: ${response.status}`)
+      throw new Error(`${chain.name} API error: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log("[v0] Blockscout response:", data)
+    console.log(`[${chain.name}] API response:`, data)
 
     // Check if the API returned an error
     if (data.error) {
@@ -54,13 +65,21 @@ export async function GET(request: NextRequest) {
       symbol: tokenInfo.symbol || "UNKNOWN",
       totalSupply: tokenInfo.total_supply || "0",
       decimals: tokenInfo.decimals || "18",
+      chain: {
+        id: chain.id,
+        name: chain.name,
+        shortName: chain.shortName,
+        icon: chain.icon,
+        color: chain.color,
+        blockExplorer: chain.blockExplorer,
+      },
     }
 
     return NextResponse.json(formattedTokenData)
   } catch (error) {
-    console.error("[v0] Token lookup error:", error)
+    console.error(`[${chain.name}] Token lookup error:`, error)
     return NextResponse.json(
-      { error: "Failed to fetch token data. Please check the contract address and try again." },
+      { error: `Failed to fetch token data from ${chain.name}. Please check the contract address and try again.` },
       { status: 500 },
     )
   }
