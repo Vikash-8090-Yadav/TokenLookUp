@@ -20,40 +20,40 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const etherscanUrl = `https://api.etherscan.io/api?module=token&action=tokeninfo&contractaddress=${contractAddress}&apikey=YourApiKeyToken`
+    const blockscoutUrl = `https://eth.blockscout.com/api/v2/tokens/${contractAddress}`
 
-    console.log("[v0] Fetching token data from:", etherscanUrl)
+    console.log("[v0] Fetching token data from:", blockscoutUrl)
 
-    const response = await fetch(etherscanUrl)
+    const response = await fetch(blockscoutUrl)
 
     if (!response.ok) {
-      throw new Error(`Etherscan API error: ${response.status}`)
+      throw new Error(`Blockscout API error: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log("[v0] Etherscan response:", data)
+    console.log("[v0] Blockscout response:", data)
 
     // Check if the API returned an error
-    if (data.status !== "1") {
+    if (data.error) {
       return NextResponse.json(
-        { error: data.message || "Token not found or invalid contract address" },
+        { error: data.error || "Token not found or invalid contract address" },
         { status: 404 },
       )
     }
 
-    // Extract token information from Etherscan response
-    const tokenInfo = data.result[0]
+    // Extract token information from Blockscout response
+    const tokenInfo = data
 
-    if (!tokenInfo) {
+    if (!tokenInfo || !tokenInfo.name) {
       return NextResponse.json({ error: "Token information not available" }, { status: 404 })
     }
 
     // Format the response to match our expected structure
     const formattedTokenData = {
-      name: tokenInfo.tokenName || "Unknown Token",
+      name: tokenInfo.name || "Unknown Token",
       symbol: tokenInfo.symbol || "UNKNOWN",
-      totalSupply: tokenInfo.totalSupply || "0",
-      decimals: tokenInfo.divisor || "18",
+      totalSupply: tokenInfo.total_supply || "0",
+      decimals: tokenInfo.decimals || "18",
     }
 
     return NextResponse.json(formattedTokenData)
