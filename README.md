@@ -43,7 +43,7 @@ A comprehensive multi-chain token explorer that provides real-time data, analyti
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/TokenLookUp.git
+   git clone https://github.com/Vikash-8090-Yadav/TokenLookUp
    cd TokenLookUp
    ```
 
